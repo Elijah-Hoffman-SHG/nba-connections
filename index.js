@@ -33,7 +33,9 @@ const getConnections = async () => {
     });
 
     console.log('Page loaded...');
+    await page.screenshot({path: 'screenshot_out.png'});
     await startGame(page);
+
     const playerMap = await getNameImgMap(page);
 
     await failGame(page);
@@ -102,19 +104,20 @@ function delay(time) {
     console.log('waiting for the react-toggle--checked selector to appear')
     await page.waitForSelector('.react-toggle--checked');
     const toggle2 = await page.$('.react-toggle--checked');
+    await page.screenshot({path: 'screenshot_2.png'});
     console.log('clicking toggle to change text to images')
     await toggle2.click();
     await page.waitForSelector(playerSelector);
+
     const playerImgs = await page.$$(playerSelector);
     let imgUrls = [];
     console.log('players found, iterating through them to get images')
     console.log(playerImgs.length)
+    await page.screenshot({path: 'screenshot.png'});
     for(let i = 0; i < playerImgs.length; i++){
         console.log(`getting image for player ${i}`)
         await delay(2000)
         console.log('delayed')
-        let html = await page.content();
-        console.log(html);
         await page.waitForSelector('.card-img');
         const img = await playerImgs[i].$eval('.card-img', img => img.getAttribute('src'));
        
