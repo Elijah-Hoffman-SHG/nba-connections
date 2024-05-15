@@ -7,14 +7,20 @@ import fs from 'fs';
 const app = express();
 app.use(express.json());
 app.get("/get-connectionLinks", async (req, res) => {
-    const data = await getConnections();
-    res.json(data);
-})
+    console.log('we are at least in here')
+    try {
+        const data = await getConnections();
+        res.json(data);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('An error occurred');
+    }
+});
 const successSelector = '.successful-card';
 const getConnections = async () => {
     console.log('Starting getConnections...');
     const browser = await puppeteer.launch({
-        headless: false,
+        headless: true,
         defaultViewport: null,
         args:['--incognito', '--no-sandbox', '--disable-setuid-sandbox'],
     });
@@ -23,7 +29,7 @@ const getConnections = async () => {
     const page = await browser.newPage();
     console.log('New page opened...');
     await page.goto('https://www.leconnections.app/', {
-        waitUntil: "networkidle2",
+        waitUntil: "domcontentloaded",
     });
 
     console.log('Page loaded...');
@@ -68,30 +74,49 @@ function delay(time) {
     await startButton.click();
  }
  async function getNameImgMap(page){
+    console.log('heres the page before clicking the toggle')
+    let html2 = await page.content();
+        console.log(html2);
     const toggleSelector = '.react-toggle';
     const playerSelector = '.shaking-container';
     await page.waitForSelector(toggleSelector);
     const toggle = await page.$(toggleSelector);
-    console.log('clicking toggle')
+    console.log('clicking toggle to change players to text')
     await toggle.click();
     console.log('toggled')
+    console.log('heres the page after clicking the toggle')
+    html2 = await page.content();
+    console.log(html2);
     let playerNames = [];
     await page.waitForSelector(playerSelector);
     const players = await page.$$(playerSelector);
+    console.log('players found, iterating through them to get names')
     for(let i = 0; i < players.length; i++){
-
+        console.log(`getting name for player ${i}`)
         const names = await players[i].$$eval('.player-name', ps => ps.map(p => p.innerText));
         const [firstName, lastName] = names;
         playerNames.push({ firstName, lastName });
+        console.log(`name for player ${i} is ${firstName} ${lastName}`)
         
     }
-    await toggle.click();
+    console.log('waiting for the react-toggle--checked selector to appear')
+    await page.waitForSelector('.react-toggle--checked');
+    const toggle2 = await page.$('.react-toggle--checked');
+    console.log('clicking toggle to change text to images')
+    await toggle2.click();
     await page.waitForSelector(playerSelector);
     const playerImgs = await page.$$(playerSelector);
     let imgUrls = [];
+    console.log('players found, iterating through them to get images')
+    console.log(playerImgs.length)
     for(let i = 0; i < playerImgs.length; i++){
-
-        const img = await playerImgs[i].$eval('img', img => img.getAttribute('src'));
+        console.log(`getting image for player ${i}`)
+        await delay(2000)
+        console.log('delayed')
+        let html = await page.content();
+        console.log(html);
+        await page.waitForSelector('.card-img');
+        const img = await playerImgs[i].$eval('.card-img', img => img.getAttribute('src'));
        
         imgUrls.push(img);
         
@@ -168,9 +193,7 @@ async function checkWarning(page) {
     }
   }
 
-async function buildimgNameMap(page){
 
-}
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
 });
