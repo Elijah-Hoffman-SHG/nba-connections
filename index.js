@@ -20,9 +20,13 @@ const successSelector = '.successful-card';
 const getConnections = async () => {
     console.log('Starting getConnections...');
     const browser = await puppeteer.launch({
-        headless: true,
-        defaultViewport: null,
-        args:['--incognito', '--no-sandbox', '--disable-setuid-sandbox'],
+        headless: 'chrome',
+        defaultViewport: {
+            width: 1920,
+            height: 1080,
+        
+        },
+        
     });
 
     console.log('Browser launched...');
@@ -31,6 +35,7 @@ const getConnections = async () => {
     await page.goto('https://www.leconnections.app/', {
         waitUntil: "domcontentloaded",
     });
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3 WAIT_UNTIL=load');
 
     console.log('Page loaded...');
     await page.screenshot({path: 'screenshot_out.png'});
@@ -76,19 +81,39 @@ function delay(time) {
     await startButton.click();
  }
  async function getNameImgMap(page){
-    console.log('heres the page before clicking the toggle')
-    let html2 = await page.content();
-        console.log(html2);
     const toggleSelector = '.react-toggle';
     const playerSelector = '.shaking-container';
     await page.waitForSelector(toggleSelector);
     const toggle = await page.$(toggleSelector);
-    console.log('clicking toggle to change players to text')
-    await toggle.click();
+ 
+    await page.waitForSelector("#closeIconHit")
+    const closeIcon = await page.$("#closeIconHit");
+    await closeIcon.click();
+    console.log('delayed hella. lets screenshot')
+    for(let i = 0; i < 10; i++){
+      let delay_sec = (1+i) * 300
+      await page.mouse.move(100 + i*10, 100);
+    
+      await(delay(1000 * 60))
+      console.log('delayed  ')
+      console.log('lets screenshot')
+      
+      await page.screenshot({path: `no_args_DomContentNoReload_User_Agent_${i}_min.png`});
+      
+    }
+  
+    await page.screenshot({path: 'screenshot_pre_first_click.png'});
+    await toggle.click({delay: 1000});
     console.log('toggled')
-    console.log('heres the page after clicking the toggle')
-    html2 = await page.content();
-    console.log(html2);
+    console.log('lets wait and screenshot again')
+    await delay(200000)
+    console.log('delayed a min about')
+  
+    console.log('delayed hella. lets screenshot after')
+  
+    await page.screenshot({path: 'screenshot_after_first_click.png'});
+    
+
     let playerNames = [];
     await page.waitForSelector(playerSelector);
     const players = await page.$$(playerSelector);
@@ -104,16 +129,17 @@ function delay(time) {
     console.log('waiting for the react-toggle--checked selector to appear')
     await page.waitForSelector('.react-toggle--checked');
     const toggle2 = await page.$('.react-toggle--checked');
-    await page.screenshot({path: 'screenshot_2.png'});
+    
+    await page.screenshot({path: 'screenshot_pre_second_click.png'});
     console.log('clicking toggle to change text to images')
     await toggle2.click();
-    await page.waitForSelector(playerSelector);
+    await page.waitUntil(playerSelector);
 
     const playerImgs = await page.$$(playerSelector);
     let imgUrls = [];
     console.log('players found, iterating through them to get images')
     console.log(playerImgs.length)
-    await page.screenshot({path: 'screenshot.png'});
+    await page.screenshot({path: 'screensho_after_second.png'});
     for(let i = 0; i < playerImgs.length; i++){
         console.log(`getting image for player ${i}`)
         await delay(2000)
