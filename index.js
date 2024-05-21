@@ -3,6 +3,7 @@ import puppeteer from "puppeteer";
 import express from "express";
 import https from 'https';
 import fs from 'fs';
+import { publishData } from "./functions/index.js";
 
 const app = express();
 app.use(express.json());
@@ -33,13 +34,15 @@ const getConnections = async () => {
     const page = await browser.newPage();
     console.log('New page opened...');
     await page.goto('https://www.leconnections.app/', {
-        waitUntil: "domcontentloaded",
+        waitUntil: "networkidle2",
     });
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3 WAIT_UNTIL=load');
 
     console.log('Page loaded...');
     await page.screenshot({path: 'screenshot_out.png'});
-    await startGame(page);
+    await page.reload({ waitUntil: ["networkidle2"] });
+    await delay(30000);
+   // await startGame(page);
 
     const playerMap = await getNameImgMap(page);
 
@@ -49,7 +52,12 @@ const getConnections = async () => {
     const data = await getAnswers(page, playerMap);
     console.log('Answers obtained...');
     await browser.close();
-    console.log('Browser closed...');
+    try {
+        const result = await publishData(data);
+        console.log(result);
+      } catch (error) {
+        console.error('Error publishing data:', error);
+      }
     return data;
 }
 async function getAnswers(page, playerMap){
@@ -89,30 +97,10 @@ function delay(time) {
     await page.waitForSelector("#closeIconHit")
     const closeIcon = await page.$("#closeIconHit");
     await closeIcon.click();
-    console.log('delayed hella. lets screenshot')
-    for(let i = 0; i < 10; i++){
-      let delay_sec = (1+i) * 300
-      await page.mouse.move(100 + i*10, 100);
     
-      await(delay(1000 * 60))
-      console.log('delayed  ')
-      console.log('lets screenshot')
-      
-      await page.screenshot({path: `no_args_DomContentNoReload_User_Agent_${i}_min.png`});
-      
-    }
-  
-    await page.screenshot({path: 'screenshot_pre_first_click.png'});
+
+   
     await toggle.click({delay: 1000});
-    console.log('toggled')
-    console.log('lets wait and screenshot again')
-    await delay(200000)
-    console.log('delayed a min about')
-  
-    console.log('delayed hella. lets screenshot after')
-  
-    await page.screenshot({path: 'screenshot_after_first_click.png'});
-    
 
     let playerNames = [];
     await page.waitForSelector(playerSelector);
@@ -124,17 +112,27 @@ function delay(time) {
         const [firstName, lastName] = names;
         playerNames.push({ firstName, lastName });
         console.log(`name for player ${i} is ${firstName} ${lastName}`)
+        await toggle.click({delay: 1000});
+        await delay(20000);
+        await page.screenshot({path: 'screenshot_after_toggle_in_loop.png'});
+        await delay(60000);
+        await page.screenshot({path: `waiting_for_player_${i}.png`});
+        await page.waitForSelector(playerSelector);
+
+        
+        
+        await page.waitForSelector('.card-img');
+        const img = await players[i].$eval('.card-img', img => img.getAttribute('src'));
+        console.log(`image for player ${i} is ${img}`)
+        await toggle.click({delay: 1000});
+        
         
     }
-    console.log('waiting for the react-toggle--checked selector to appear')
-    await page.waitForSelector('.react-toggle--checked');
-    const toggle2 = await page.$('.react-toggle--checked');
+  
     
-    await page.screenshot({path: 'screenshot_pre_second_click.png'});
-    console.log('clicking toggle to change text to images')
-    await toggle2.click();
-    await page.waitUntil(playerSelector);
-
+    await page.waitForSelector(playerSelector);
+    await toggle.click({delay: 1000});
+    await delay(60000);
     const playerImgs = await page.$$(playerSelector);
     let imgUrls = [];
     console.log('players found, iterating through them to get images')
@@ -179,22 +177,22 @@ return playerMap;
 
     await page.waitForSelector(submitButtonSelector);
     const submitButton = await page.$(submitButtonSelector);
-    await submitButton.click();
+    await submitButton.click({delay: 1000});
     await delay(4000);
 
-    await button[0].click();
-    await button[5].click();
-    await submitButton.click();
+    await button[0].click({delay: 1000});
+    await button[5].click({delay: 1000});
+    await submitButton.click({delay: 1000});
     await delay(4000);
 
-    await button[5].click();
-    await button[6].click();
-    await submitButton.click();
+    await button[5].click({delay: 1000});
+    await button[6].click({delay: 1000});
+    await submitButton.click({delay: 1000});
     await delay(4000);
 
-    await button[6].click();
-    await button[7].click();
-    await submitButton.click();
+    await button[6].click({delay: 1000});
+    await button[7].click({delay: 1000});
+    await submitButton.click({delay: 1000});
 
     let successfulCards = [];
     while (successfulCards.length !== 4) {
