@@ -45,7 +45,7 @@ const getConnections = async () => {
    // await startGame(page);
 
     const playerMap = await getNameImgMap(page);
-
+    console.log(playerMap)
     await failGame(page);
     console.log('Game failed...');
     await delay(100);
@@ -66,9 +66,16 @@ async function getAnswers(page, playerMap){
     let data = [];
     for(let i = 0; i < success.length; i++){
         const imgs = await success[i].$$eval('img', imgs => imgs.map(img => img.getAttribute('src')));
-        let players = imgs.map(img => playerMap.get(img));
+        let players = imgs.map(img => {
+            let player = playerMap.get(img);
+            return {
+              firstName: player.firstName,
+              lastName: player.lastName,
+              img: img
+            };
+          });
         const title = await success[i].$eval('h2', i => i.innerText);
-        data.push({imgs, title, players});
+        data.push({title, players});
     }
     await page.waitForSelector(".format-date");
     const date = await page.$eval(".format-date", i => i.innerText);
@@ -97,7 +104,7 @@ function delay(time) {
     await page.waitForSelector("#closeIconHit")
     const closeIcon = await page.$("#closeIconHit");
     await closeIcon.click();
-    
+    let playerMap = new Map();
 
    
     await toggle.click({delay: 1000});
@@ -112,9 +119,9 @@ function delay(time) {
         const [firstName, lastName] = names;
         playerNames.push({ firstName, lastName });
         console.log(`name for player ${i} is ${firstName} ${lastName}`)
+        await page.screenshot({path: `${i}screenshot_before_toggle_in_loop.png`});
         await toggle.click({delay: 1000});
-        await delay(20000);
-        await page.screenshot({path: 'screenshot_after_toggle_in_loop.png'});
+        await page.screenshot({path: `${i}screenshot_after_toggle_in_loop.png`});
         await delay(60000);
         await page.screenshot({path: `waiting_for_player_${i}.png`});
         await page.waitForSelector(playerSelector);
@@ -125,36 +132,17 @@ function delay(time) {
         const img = await players[i].$eval('.card-img', img => img.getAttribute('src'));
         console.log(`image for player ${i} is ${img}`)
         await toggle.click({delay: 1000});
-        
+        playerMap.set(img, {firstName, lastName});
         
     }
   
     
-    await page.waitForSelector(playerSelector);
-    await toggle.click({delay: 1000});
-    await delay(60000);
-    const playerImgs = await page.$$(playerSelector);
-    let imgUrls = [];
-    console.log('players found, iterating through them to get images')
-    console.log(playerImgs.length)
-    await page.screenshot({path: 'screensho_after_second.png'});
-    for(let i = 0; i < playerImgs.length; i++){
-        console.log(`getting image for player ${i}`)
-        await delay(2000)
-        console.log('delayed')
-        await page.waitForSelector('.card-img');
-        const img = await playerImgs[i].$eval('.card-img', img => img.getAttribute('src'));
-       
-        imgUrls.push(img);
-        
-    }
+   
+ 
+ 
+   
+
     
- 
- 
-    let playerMap = new Map();
-for(let i = 0; i < imgUrls.length; i++) {
-    playerMap.set(imgUrls[i], playerNames[i]);
-}
 return playerMap;
   
 
