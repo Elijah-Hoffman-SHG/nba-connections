@@ -1,6 +1,7 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
+const { merge } = require("jquery");
 const firebaseConfig = {
   apiKey: "AIzaSyD856_p6ESQJoYx8qMXtkWPe5eZLpG1WsQ",
   authDomain: "leconnectionsarchive.firebaseapp.com",
@@ -19,13 +20,20 @@ async function publishData(data) {
 
   const batch = firestore.batch();
 
-  data.forEach((item, index) => {
-    if (item.imgs && item.title && item.players) {
-        const dateRef = firestore.collection('nbaData').doc(item.date);
-        const itemRef = dateRef.collection('items').doc(`item-${index}`);
-        batch.set(itemRef, item);
+  // Get today's date as a string in the format 'YYYY-MM-DD'
+  const today = new Date();
+  const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  data.forEach((item) => {
+    if (item.title && item.players) {
+      item.players.forEach((player, index) => {
+        const playerRef = firestore.collection('nbaData').doc('connections').collection(item.title).doc(`${player.firstName}-${player.lastName}`);
+        const connectionRef =firestore.collection('nbaData').doc('players').collection(`${player.firstName}-${player.lastName}`).doc(item.title);
+        batch.set(playerRef, { ...player, connection: item }, { merge: true });
+        batch.set(connectionRef, { ...player, connection: item }, { merge: true });
+    });
     }
-});
+  });
 
   await batch.commit();
   return 'Data published successfully';
